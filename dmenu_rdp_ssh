@@ -1,0 +1,27 @@
+#!/bin/bash
+# dmenu_rdp_ssh
+# Created on: Sun 28 Jun 2020 01:24:37 AM CEST
+#
+#  ____   __  ____  __
+# (  _ \ /. |(  _ \/  )
+#  )___/(_  _))___/ )(
+# (__)    (_)(__)  (__)
+#
+# Description:
+#  Script to automatically edit configuration file
+# Dependencies:
+#  sudo apt install vim dmenu
+
+
+CONNECT_COMMANDS=$(cat $HOME/.bash_history | grep 'ssh\|xfreerdp\|evil-winrm' | tac | dmenu "$@")
+
+if [ ! -z "$CONNECT_COMMANDS" ]; then
+	echo $CONNECT_COMMANDS
+	if [[ $CONNECT_COMMANDS == *"xfreerdp"* ]]; then
+		$CONNECT_COMMANDS &
+	else
+		st -e $CONNECT_COMMANDS
+	fi
+fi
+
+exit
