@@ -10,9 +10,8 @@
 #  later unpacking
 
 BDIR=/tmp/backup
-CONF_FILES=(.vimrc .tmux.conf .bashrc .fzf.bash .tigrc .gdbinit .inputrc .conkyrc .wallpaper.png .Xresources .packages .tint2rc)
-CONF_DIRS=(.vim/ .tmux/ .bash_configs/ .dwm/ .fzf/ .peda/ .xvwm/ .themes/)
-SOURCE=.source/
+CONF_FILES=(.vimrc .tmux.conf .bashrc .fzf.bash .tigrc .gdbinit .inputrc .conkyrc .wallpaper.png .Xresources .packages )
+CONF_DIRS=(.vim/ .tmux/ .fzf/ .peda/ .xvwm/)
 
 function move_to_folder() {
 	for item in $@; do
@@ -48,23 +47,6 @@ function check_if_moved() {
 	echo "Error: $1 Does not exist"
 }
 
-function clean() {
-	SOURCES=($(ls $BDIR/$SOURCE))
-	SAVED_PWD=$(pwd)
-
-	echo "Cleaning .source"
-	for item in ${SOURCES[*]}; do
-		FILE=$BDIR/$SOURCE/$item
-		if [ -d "$FILE" ]; then
-			cd $FILE
-			echo -n "Running make clean on $item -> "
-			make clean &> /dev/null && echo -e "\e[1;34m:)\e[m" ||
-				echo -e "\e[1;31m:(\e[m"
-		fi
-	done
-	cd $SAVED_PWD
-}
-
 function remove() {
 	for item in $@; do
 		FILE=$BDIR/$item
@@ -83,7 +65,6 @@ else
 	echo "Clearing dir..."
 	remove ${CONF_FILES[*]}
 	remove ${CONF_DIRS[*]}
-	remove ${SOURCE[*]}
 fi
 
 echo -n "Generating packages "
@@ -93,7 +74,6 @@ pacman -Q > $HOME/.packages && echo -e "\e[1;34m:)\e[m" ||
 
 move_to_folder ${CONF_FILES[*]}
 move_to_folder ${CONF_DIRS[*]}
-move_to_folder ${SOURCE[*]}
 
 clean
 
