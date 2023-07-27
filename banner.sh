@@ -9,7 +9,7 @@
 #
 # Description:
 
-NO=$(( $RANDOM % 8 + 1 ))
+NO=$(( $RANDOM % 7 + 1 ))
 
 case $NO in
 	1)
@@ -19,21 +19,18 @@ case $NO in
 		sh ghosts.sh
 		;;
 	3)
-		pfetch
-		;;
-	4)
 		sh pacman.sh
 		;;
-	5)
+	4)
 		sh darthvader.sh
 		;;
-	6)
+	5)
 		doge
 		;;
-	7)
+	6)
 		fortune | cowsay -f /usr/share/cows/$(/bin/ls /usr/share/cows/ | shuf -n 1) | lolcat
 		;;
-	8)
+	7)
 		date "+%D %T" | figlet | lolcat
 		;;
 esac
