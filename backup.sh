@@ -75,8 +75,6 @@ pacman -Q > $HOME/.packages && echo -e "\e[1;34m:)\e[m" ||
 move_to_folder ${CONF_FILES[*]}
 move_to_folder ${CONF_DIRS[*]}
 
-clean
-
 echo -n "Moving $BDIR to ./backup -> "
 cp -r $BDIR/ ./backup &> /dev/null && echo -e "\e[1;34m:)\e[m" ||
 	echo -e "\e[1;31m:(\e[m"
