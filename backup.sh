@@ -10,7 +10,7 @@
 #  later unpacking
 
 BDIR=/tmp/backup
-CONF_FILES=(.vimrc .tmux.conf .bashrc .fzf.bash .tigrc .gdbinit .inputrc .conkyrc .wallpaper.png .Xresources .packages )
+CONF_FILES=(.vimrc .tmux.conf .fzf.bash .tigrc .gdbinit .wallpaper.png .Xresources)
 CONF_DIRS=(.vim/ .tmux/ .fzf/ .peda/ .xvwm/)
 
 function move_to_folder() {
@@ -66,10 +66,6 @@ else
 	remove ${CONF_FILES[*]}
 	remove ${CONF_DIRS[*]}
 fi
-
-echo -n "Generating packages "
-pacman -Q > $HOME/.packages && echo -e "\e[1;34m:)\e[m" ||
-	echo -e "\e[1;31m:(\e[m"
 
 
 move_to_folder ${CONF_FILES[*]}
