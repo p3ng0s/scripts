@@ -1,0 +1,49 @@
+#!/bin/bash
+# shutdown.sh
+# Created on: Sun 05 Jul 2020 05:55:43 AM CEST
+#
+#  ____   __  ____  __
+# (  _ \ /. |(  _ \/  )
+#  )___/(_  _))___/ )(
+# (__)    (_)(__)  (__)
+#
+# Description:
+#  simple script to turn of the machine with dmenu
+#
+
+if [ ! -d $HOME/.qemu ]; then
+	mkdir -p $HOME/.qemu
+	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 30G
+fi
+
+if [ ! -f $HOME/.qemu/virtio-win-0.1.240.iso ]; then
+	notify-send -u critical -a win "Windows Environement" "Downloading the virtio-win.iso file...." -i /etc/p3ng0s/icons/p3ng0s.png
+	wget 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso' -o $HOME/.qemu/virtio-win-0.1.240.iso
+	notify-send -u critical -a win "Windows Environement" "Done!" -i /etc/p3ng0s/icons/p3ng0s.png
+fi
+
+function start_with_iso() {
+	if [ ! -f $HOME/.qemu/Win10_22H2_English_x64v1.iso ]; then
+		notify-send -u critical -a win "Windows Environement" "You are missing the file $HOME/.qemu/Win10_22H2_English_x64v1.iso file!" -i /etc/p3ng0s/icons/p3ng0s.png
+		exit
+	fi
+
+	qemu-system-x86_64 -enable-kvm -cdrom $HOME/.qemu/Win10_22H2_English_x64v1.iso -boot menu=on -drive file=$HOME/.qemu/Windows.img -drive file=$HOME/.qemu/virtio-win-0.1.240.iso,media=cdrom -m 6G -cpu host -smp 4 -vga virtio -display sdl,gl=on
+}
+
+
+#ret=$(echo -e "X cancel\n⏻ shutdown\nﰇ reboot" | dmenu "$@")
+#ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu -fn "Hack Nerd Font Mono:size=13" -nb "#393939" -nf "#FF875F" -sb "#FF875F" -sf "#393939" -h 25 -bw p -l 15 -p "\$" -b)
+ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu "$@")
+
+if echo $ret | grep "Boot VM" &> /dev/null; then
+	qemu-system-x86_64 -enable-kvm -boot d -drive file=$HOME/.qemu/Windows.img -cdrom $HOME/.qemu/virtio-win-0.1.240.iso -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on
+elif echo $ret | grep "Network" &> /dev/null; then
+	notify-send -u critical -a win "Windows Environement" "Not functional" -i /etc/p3ng0s/icons/p3ng0s.png
+	exit
+	#qemu-system-x86_64 -enable-kvm -boot n -drive file=$HOME/.qemu/Windows.img -cdrom $HOME/.qemu/virtio-win-0.1.240.iso -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on -netdev bridge,br=br0,id=net0 -device virtio-net-pci,netdev=net0
+elif echo $ret | grep "Reset" &> /dev/null; then
+	start_with_iso
+else
+	echo "no!"
+fi
