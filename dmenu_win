@@ -37,7 +37,7 @@ function start_with_iso() {
 ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu "$@")
 
 if echo $ret | grep "Boot VM" &> /dev/null; then
-	qemu-system-x86_64 -enable-kvm -boot d -drive file=$HOME/.qemu/Windows.img -cdrom $HOME/.qemu/virtio-win-0.1.240.iso -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on
+	qemu-system-x86_64 -enable-kvm -boot d -drive file=$HOME/.qemu/Windows.img -drive file=$HOME/.qemu/virtio-win-0.1.240.iso,media=cdrom -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on -device virtio-9p-pci,fsdev=share,mount_tag=drive -fsdev local,security_model=mapped,id=share,path=/opt/windows/ -net user,smb=/opt/windows/ -net nic,model=virtio
 elif echo $ret | grep "Network" &> /dev/null; then
 	notify-send -u critical -a win "Windows Environement" "Not functional" -i /etc/p3ng0s/icons/p3ng0s.png
 	exit
