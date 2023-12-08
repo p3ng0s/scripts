@@ -13,6 +13,9 @@ BDIR=/tmp/backup
 CONF_FILES=(.vimrc .tmux.conf .fzf.bash .tigrc .gdbinit .wallpaper.png .Xresources)
 CONF_DIRS=(.vim/ .tmux/ .fzf/ .peda/ .xvwm/)
 
+HOST=$(cat $HOME/.p3ng0s.json | jq -r .host)
+UNAME=$(cat $HOME/.p3ng0s.json | jq -r .user)
+
 function move_to_folder() {
 	for item in $@; do
 		IN_FILE=$HOME/$item
@@ -85,6 +88,9 @@ echo -n "checking size -> "
 	echo -e "\e[1;31m:(\nError:\e[m Please consider having a smaller backup file"
 
 rm -rf ./backup/
+
+scp ./backup.tar.xz $UNAME@$HOST:/var/www/html/rice/backup.tar.xz
+
 echo "All done :)"
 
 exit
