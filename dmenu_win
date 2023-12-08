@@ -34,7 +34,7 @@ function start_with_iso() {
 
 #ret=$(echo -e "X cancel\n⏻ shutdown\nﰇ reboot" | dmenu "$@")
 #ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu -fn "Hack Nerd Font Mono:size=13" -nb "#393939" -nf "#FF875F" -sb "#FF875F" -sf "#393939" -h 25 -bw p -l 15 -p "\$" -b)
-ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu "$@")
+ret=$(echo -e " Boot VM\n Usb boot\n Network boot\nﰇ Reset & Recovery" | dmenu "$@")
 
 if echo $ret | grep "Boot VM" &> /dev/null; then
 	qemu-system-x86_64 -enable-kvm -boot d -drive file=$HOME/.qemu/Windows.img -drive file=$HOME/.qemu/virtio-win-0.1.240.iso,media=cdrom -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on -device virtio-9p-pci,fsdev=share,mount_tag=drive -fsdev local,security_model=mapped,id=share,path=/opt/windows/ -net user,smb=/opt/windows/ -net nic,model=virtio
@@ -44,6 +44,9 @@ elif echo $ret | grep "Network" &> /dev/null; then
 	#qemu-system-x86_64 -enable-kvm -boot n -drive file=$HOME/.qemu/Windows.img -cdrom $HOME/.qemu/virtio-win-0.1.240.iso -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on -netdev bridge,br=br0,id=net0 -device virtio-net-pci,netdev=net0
 elif echo $ret | grep "Reset" &> /dev/null; then
 	start_with_iso
+elif echo $ret | grep "Usb" &> /dev/null; then
+	ret=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | awk '$3 == "disk" {print "/dev/"$1}' | dmenu "$@")
+	kdesu -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -hdb $ret -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on"
 else
 	echo "no!"
 fi
