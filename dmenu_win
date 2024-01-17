@@ -15,6 +15,9 @@ if [ ! -d $HOME/.qemu ]; then
 	mkdir -p $HOME/.qemu
 	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 30G
 fi
+if [ ! -f $HOME/.qemu/Windows.img ]; then
+	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 30G
+fi
 
 if [ ! -f $HOME/.qemu/virtio-win-0.1.240.iso ]; then
 	notify-send -u critical -a win "Windows Environement" "Downloading the virtio-win.iso file...." -i /etc/p3ng0s/icons/p3ng0s.png
@@ -28,7 +31,7 @@ function start_with_iso() {
 		exit
 	fi
 
-	qemu-system-x86_64 -enable-kvm -cdrom $HOME/.qemu/Win10_22H2_English_x64v1.iso -boot menu=on -drive file=$HOME/.qemu/Windows.img -drive file=$HOME/.qemu/virtio-win-0.1.240.iso,media=cdrom -m 6G -cpu host -smp 4 -vga virtio -display sdl,gl=on
+	qemu-system-x86_64  -enable-kvm -cdrom $HOME/.qemu/Win10_22H2_English_x64v1.iso -boot menu=on -drive file=$HOME/.qemu/Windows.img -drive file=$HOME/.qemu/virtio-win-0.1.240.iso,media=cdrom -m 6G -cpu host -smp 5 -vga virtio -display sdl,gl=on
 }
 
 
