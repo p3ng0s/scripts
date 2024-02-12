@@ -30,7 +30,7 @@ function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_s
 	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
 	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here" \
-	"secdump_over_the_air")
+	"secdump_over_the_air" "file_splitter")
 
 # function that are needed
 function stabilize_rev_shell() {
@@ -179,6 +179,42 @@ function secdump_over_the_air() {
 	fi
 }
 
+function file_splitter() {
+	form_output=$(zenity --forms \
+		--title="File splitter:" \
+		--text="Please enter a number and select an option:" \
+		--add-entry="Enter a Number:" \
+		--add-combo="Select Option:" \
+		--combo-values="drag|path" \
+		--separator="|")
+	files=
+	if [ -z "$form_output" ]; then
+		zenity --info --title="Information" --text="No input provided. Exiting."
+		exit 1
+	fi
+	number_of_splits=$(echo "$form_output" | cut -d"|" -f1)
+	type_of_option=$(echo "$form_output" | cut -d"|" -f2)
+	if ! [[ "$number_of_splits" =~ ^[0-9]+$ ]]; then
+		zenity --error --title="Error" --text="Invalid input. Please enter a valid number."
+		exit 1
+	fi
+	working_dir=$(mktemp -d )
+
+	cd $working_dir
+	if [ $type_of_option = "drag" ]; then
+		zenity --info --title="Success" --text="You entered: $number_of_splits amount of splits please drag the file in the window that will open after this dialog"
+		files=$(/etc/p3ng0s/ripdrag -p -k -t)
+		echo $files | xargs -I {} cp -r "{}" .
+	else
+		files=$(zenity --title="Enter Path" --text="Please enter a path:" --file-selection --filename="/")
+		echo $files | xargs -I {} cp -r "{}" .
+	fi
+	files=$(/usr/bin/ls $working_dir)
+	echo $files | xargs -I {} split -n $number_of_splits -d --additional-suffix=.bin {} {}
+	echo $files | xargs -I {} rm -rf "{}"
+	ripdrag $(/usr/bin/ls $working_dir)
+}
+
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 
@@ -218,5 +254,7 @@ if [ ! -z $ret ]; then
 		psexec_outa_here
 	elif [ $ret = "secdump_over_the_air" ]; then
 		secdump_over_the_air
+	elif [ $ret = "file_splitter" ]; then
+		file_splitter
 	fi
 fi
