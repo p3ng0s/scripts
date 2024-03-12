@@ -13,10 +13,10 @@
 
 if [ ! -d $HOME/.qemu ]; then
 	mkdir -p $HOME/.qemu
-	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 30G
+	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 100G
 fi
 if [ ! -f $HOME/.qemu/Windows.img ]; then
-	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 30G
+	qemu-img create -f qcow2 $HOME/.qemu/Windows.img 100G
 fi
 
 if [ ! -f $HOME/.qemu/virtio-win-0.1.240.iso ]; then
