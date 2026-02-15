@@ -53,12 +53,14 @@ function start_with_iso() {
 ret=$(echo -e " Boot VM\n Usb boot\nﰇ Reset & Recovery\n Settings" | dmenu "$@")
 
 if echo $ret | grep "Boot VM" &> /dev/null; then
-	qemu-system-x86_64 -enable-kvm -boot d -drive file=$(cat $CONFIG_FILE | jq -r .vm_file) -drive file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on -device virtio-9p-pci,fsdev=share,mount_tag=drive -fsdev local,security_model=mapped,id=share,path=/opt/windows/ -net user,smb=/opt/windows/ -net nic,model=virtio
+	qemu-system-x86_64 -enable-kvm -boot d -drive file=$(cat $CONFIG_FILE | jq -r .vm_file) -drive file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on -device virtio-9p-pci,fsdev=share,mount_tag=drive -fsdev local,security_model=mapped,id=share,path=/opt/windows/ -net user,smb=/opt/windows/ -net nic,model=virtio 
+	#-usb -device usb-host,hostbus=3,hostport=7
 elif echo $ret | grep "Reset" &> /dev/null; then
 	start_with_iso
 elif echo $ret | grep "Usb" &> /dev/null; then
 	ret=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | awk '$3 == "disk" {print "/dev/"$1}' | dmenu "$@")
-	kdesu -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -hdb $ret -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on"
+	xhost +si:localuser:root
+	pkexec env DISPLAY=$DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR bash -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -drive file=$ret,format=raw -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on"
 elif echo $ret | grep "Settings" &> /dev/null; then
 	settings
 else

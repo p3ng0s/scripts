@@ -15,6 +15,6 @@ VPN_FILES=("tor" $(find $HOME -name "*.ovpn"))
 FILE_PATH=$(echo ${VPN_FILES[*]} | tr ' ' '\n' | dmenu "$@")
 pid=$(ps aux | grep "dwmstat" | head -n1 | awk -F' ' '{print $2}')
 
-kdesu "openvpn $FILE_PATH" &
+pkexec bash -c "openvpn $FILE_PATH &"
 sleep 10
 kill -s SIGUSR1 $pid
