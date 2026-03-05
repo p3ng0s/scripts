@@ -60,7 +60,7 @@ elif echo $ret | grep "Reset" &> /dev/null; then
 elif echo $ret | grep "Usb" &> /dev/null; then
 	ret=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | awk '$3 == "disk" {print "/dev/"$1}' | dmenu "$@")
 	xhost +si:localuser:root
-	pkexec env DISPLAY=$DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR bash -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -drive file=$ret,format=raw -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on"
+	pkexec env DISPLAY=$DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR bash -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -drive file=$ret,format=raw -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on -machine q35 -bios /usr/share/edk2/x64/OVMF.4m.fd"
 elif echo $ret | grep "Settings" &> /dev/null; then
 	settings
 else
