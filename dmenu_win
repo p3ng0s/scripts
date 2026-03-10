@@ -77,13 +77,10 @@ function vm_management() {
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
 		echo "screendump $HOME/Pictures/screenshots/qemu.png" | socat - unix:$MANAGEMENT_SOCKET
 	elif echo $ret | grep "USB" &> /dev/null; then
-		form_data=$(zenity --forms --title="Enter Information" \
-			--text="Enter the following information:" \
-			--add-entry="Vendor Id" \
-			--add-entry="Product Id" \
-			--separator="|")
-		VENDORID=$(echo "$form_data" | cut -d"|" -f1)
-		PRODUCTID=$(echo "$form_data" | cut -d"|" -f2)
+		ret=$(lsusb | awk '{print $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16}' | dmenu "$@")
+
+		VENDORID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f1)
+		PRODUCTID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f2)
 
 		echo "device_add usb-host,vendorid=0x$VENDORID,productid=0x$PRODUCTID,id=controller" | socat - unix:$MANAGEMENT_SOCKET
 	fi
