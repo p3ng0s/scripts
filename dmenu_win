@@ -130,8 +130,6 @@ elif echo $ret | grep "Usb" &> /dev/null; then
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
 		-drive file=$ret,format=raw,if=virtio,cache=none,aio=native \
-		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
-		-device ide-cd,drive=cdrom1,bus=ide.1 \
 		-m $(cat $CONFIG_FILE | jq -r .ram) \
 		-smp $(cat $CONFIG_FILE | jq -r .cores) \
 		-vga virtio \
