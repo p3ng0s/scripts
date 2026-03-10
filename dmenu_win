@@ -8,14 +8,16 @@
 # (__)    (_)(__)  (__)
 #
 # Description:
-#  simple script to turn of the machine with dmenu
+#  simple script to use qemu on my machine with specific optimization for Pcores
+#  and testing live machines and windows things.
 #
 
 CONFIG_FILE=$HOME/.qemu/config.json
+MANAGEMENT_SOCKET=/tmp/qemu-manage.sock
 
 if [ ! -f $CONFIG_FILE ]; then
 	mkdir -p $HOME/.qemu
-	echo "{\"ram\":\"6G\",\"cores\":5,\"vm_file\":\"$HOME/.qemu/Windows.img\",\"vm_size\":\"100G\",\"virtio\":\"$HOME/.qemu/Win10_22H2_English_x64v1.iso\"}" > $CONFIG_FILE
+	echo "{\"ram\":\"8G\",\"cores\":5,\"vm_file\":\"$HOME/.qemu/Windows.img\",\"vm_size\":\"100G\",\"virtio\":\"$HOME/.qemu/virtio-win.iso\",\"iso\":\"$HOME/.qemu/windows.iso\"}" > $CONFIG_FILE
 	qemu-img create -f qcow2 $(cat $CONFIG_FILE | jq -r .vm_file) $(cat $CONFIG_FILE | jq -r .vm_size)
 fi
 
@@ -39,30 +41,109 @@ function settings() {
 }
 
 function start_with_iso() {
-	if [ ! -f $(cat $CONFIG_FILE | jq -r .virtio) ]; then
+	if [ ! -f $(cat $CONFIG_FILE | jq -r .virtio) ] || [ ! -f $(cat $CONFIG_FILE | jq -r .iso) ]; then
 		notify-send -u critical -a win "Windows Environement" "You are missing the file $(cat $CONFIG_FILE | jq -r .virtio) file!" -i /etc/p3ng0s/icons/p3ng0s.png
 		exit
 	fi
 
-	qemu-system-x86_64  -enable-kvm -cdrom $(cat $CONFIG_FILE | jq -r .virtio) -boot menu=on -drive file=$(cat $CONFIG_FILE | jq -r .vm_file) -drive file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on
+	PCORES=$(for cpu in /sys/devices/system/cpu/cpu[0-9]*/topology/core_cpus_list; do
+		val=$(cat "$cpu")
+		echo "$val"
+	done | grep '-' | tr '-' ' ' | awk '{for(i=$1;i<=$2;i++) printf i","}' | sed 's/,$//')
+	PINNED=$(echo "$PCORES" | cut -d',' -f1-4)
+	taskset -c "$PINNED" qemu-system-x86_64 -enable-kvm \
+		-machine q35,accel=kvm \
+		-object iothread,id=iothread0 \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
+		-boot menu=on,splash-time=50000 \
+		-drive id=disk0,file=$(cat $CONFIG_FILE | jq -r .vm_file),format=qcow2,if=none,cache=none,aio=io_uring \
+		-device virtio-blk-pci,drive=disk0,iothread=iothread0 \
+		-drive id=cdrom0,file=$(cat $CONFIG_FILE | jq -r .iso),media=cdrom,readonly=on,if=none \
+		-device ide-cd,drive=cdrom0,bus=ide.0 \
+		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
+		-device ide-cd,drive=cdrom1,bus=ide.1 \
+		-m $(cat $CONFIG_FILE | jq -r .ram) -usb -device usb-tablet \
+		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time -smp $(cat $CONFIG_FILE | jq -r .cores) \
+		-vga std \
+		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
+		-netdev user,id=net0,smb=/opt/windows/ -device virtio-net-pci,netdev=net0
 }
 
+function vm_management() {
+	ret=$(echo -e "Screendump\nPlugin USB" | dmenu "$@")
 
-#ret=$(echo -e "X cancel\n⏻ shutdown\nﰇ reboot" | dmenu "$@")
-#ret=$(echo -e " Boot VM\n Network boot\nﰇ Reset & Recovery" | dmenu -fn "Hack Nerd Font Mono:size=13" -nb "#393939" -nf "#FF875F" -sb "#FF875F" -sf "#393939" -h 25 -bw p -l 15 -p "\$" -b)
-ret=$(echo -e " Boot VM\n Usb boot\nﰇ Reset & Recovery\n Settings" | dmenu "$@")
+	if echo $ret | grep "Screendump" &> /dev/null; then
+		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
+		echo "screendump $HOME/Pictures/screenshots/qemu.png" | socat - unix:$MANAGEMENT_SOCKET
+	elif echo $ret | grep "USB" &> /dev/null; then
+		form_data=$(zenity --forms --title="Enter Information" \
+			--text="Enter the following information:" \
+			--add-entry="Vendor Id" \
+			--add-entry="Product Id" \
+			--separator="|")
+		VENDORID=$(echo "$form_data" | cut -d"|" -f1)
+		PRODUCTID=$(echo "$form_data" | cut -d"|" -f2)
+
+		echo "device_add usb-host,vendorid=0x$VENDORID,productid=0x$PRODUCTID,id=controller" | socat - unix:$MANAGEMENT_SOCKET
+	fi
+}
+
+cp /usr/share/edk2/x64/OVMF_VARS.4m.fd /tmp/OVMF_VARS.4m.fd
+
+ret=$(echo -e " Boot VM\n Usb boot\nﰇ Reset & Recovery\n Settings\n Manage VM" | dmenu "$@")
 
 if echo $ret | grep "Boot VM" &> /dev/null; then
-	qemu-system-x86_64 -enable-kvm -boot d -drive file=$(cat $CONFIG_FILE | jq -r .vm_file) -drive file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on -device virtio-9p-pci,fsdev=share,mount_tag=drive -fsdev local,security_model=mapped,id=share,path=/opt/windows/ -net user,smb=/opt/windows/ -net nic,model=virtio 
-	#-usb -device usb-host,hostbus=3,hostport=7
+	PCORES=$(for cpu in /sys/devices/system/cpu/cpu[0-9]*/topology/core_cpus_list; do
+		val=$(cat "$cpu")
+		echo "$val"
+	done | grep '-' | tr '-' ' ' | awk '{for(i=$1;i<=$2;i++) printf i","}' | sed 's/,$//')
+	PINNED=$(echo "$PCORES" | cut -d',' -f1-4)
+
+	taskset -c "$PINNED" qemu-system-x86_64 -enable-kvm \
+		-machine q35,accel=kvm \
+		-object iothread,id=iothread0 \
+		-boot c \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
+		-drive id=disk0,file=$(cat $CONFIG_FILE | jq -r .vm_file),format=qcow2,if=none,cache=none,aio=io_uring \
+		-device virtio-blk-pci,drive=disk0,iothread=iothread0 \
+		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
+		-device ide-cd,drive=cdrom1,bus=ide.1 \
+		-m $(cat $CONFIG_FILE | jq -r .ram) -usb -device usb-tablet \
+		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time -smp $(cat $CONFIG_FILE | jq -r .cores) \
+		-vga none -device virtio-vga-gl -display sdl,gl=on \
+		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
+		-netdev user,id=net0,smb=/opt/windows/ -device virtio-net-pci,netdev=net0
 elif echo $ret | grep "Reset" &> /dev/null; then
 	start_with_iso
 elif echo $ret | grep "Usb" &> /dev/null; then
 	ret=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | awk '$3 == "disk" {print "/dev/"$1}' | dmenu "$@")
-	xhost +si:localuser:root
-	pkexec env DISPLAY=$DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR bash -c "qemu-system-x86_64 -enable-kvm -boot menu=on -usb -drive file=$ret,format=raw -m $(cat $CONFIG_FILE | jq -r .ram) -cpu host -smp $(cat $CONFIG_FILE | jq -r .cores) -vga virtio -display sdl,gl=on -machine q35 -bios /usr/share/edk2/x64/OVMF.4m.fd"
+	PCORES=$(for cpu in /sys/devices/system/cpu/cpu[0-9]*/topology/core_cpus_list; do
+		val=$(cat "$cpu")
+		echo "$val"
+	done | grep '-' | tr '-' ' ' | awk '{for(i=$1;i<=$2;i++) printf i","}' | sed 's/,$//')
+	PINNED=$(echo "$PCORES" | cut -d',' -f1-4)
+
+	taskset -c "$PINNED" qemu-system-x86_64 \
+		-enable-kvm \
+		-boot menu=on \
+		-machine q35,accel=kvm \
+		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
+		-drive file=$ret,format=raw,if=virtio,cache=none,aio=native \
+		-m $(cat $CONFIG_FILE | jq -r .ram) \
+		-smp $(cat $CONFIG_FILE | jq -r .cores) \
+		-vga virtio \
+		-display sdl,gl=on \
+		-usb \
+		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
+		-device usb-tablet
 elif echo $ret | grep "Settings" &> /dev/null; then
 	settings
+elif echo $ret | grep "Manage" &> /dev/null; then
+	vm_management "$@"
 else
 	echo "no!"
 fi
