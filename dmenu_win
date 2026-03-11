@@ -71,20 +71,42 @@ function start_with_iso() {
 }
 
 function vm_management() {
-	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset" | dmenu "$@")
+	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error" "No VM running" && return
+	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
 		echo "screendump $HOME/Pictures/screenshots/qemu.png" | socat - unix:$MANAGEMENT_SOCKET
 	elif echo $ret | grep "USB" &> /dev/null; then
 		ret=$(lsusb | awk '{print $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16}' | dmenu "$@")
-
 		VENDORID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f1)
 		PRODUCTID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f2)
 
 		echo "device_add usb-host,vendorid=0x$VENDORID,productid=0x$PRODUCTID,id=controller" | socat - unix:$MANAGEMENT_SOCKET
 	elif echo $ret | grep "Reset" &> /dev/null; then
 		echo "system_reset" | socat - unix:$MANAGEMENT_SOCKET
+	elif echo $ret | grep "Snapshots" &> /dev/null; then
+		snapshots=$(echo "info snapshots" | socat - unix:$MANAGEMENT_SOCKET | grep -E "^[0-9]+" | awk '{print $2}')
+		selected=$(echo -e "New\n$snapshots" | dmenu "$@")
+
+		if echo $selected| grep "New" &> /dev/null; then
+			name=$(zenity --entry --text "Snapshot Name:")
+			echo "savevm $name" | socat - unix:$MANAGEMENT_SOCKET
+		else
+			echo "loadvm $selected" | socat - unix:$MANAGEMENT_SOCKET
+		fi
+	elif echo $ret | grep "Network" &> /dev/null; then
+		STATE_FILE=/tmp/qemu-net-state
+
+		if [ -f $STATE_FILE ] && grep -q "off" $STATE_FILE; then
+			echo "set_link virtio-net-pci.0 on" | socat - unix:$MANAGEMENT_SOCKET
+			echo "on" > $STATE_FILE
+			notify-send -a win "Windows" "Network restored"
+		else
+			echo "set_link virtio-net-pci.0 off" | socat - unix:$MANAGEMENT_SOCKET
+			echo "off" > $STATE_FILE
+			notify-send -a win "Windows" "Network isolated"
+		fi
 	fi
 }
 
