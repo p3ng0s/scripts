@@ -10,8 +10,8 @@
 # Description:
 #  Script to run openvpn
 
-notify-send "Searching for vpn files"
-VPN_FILES=("tor" $(find $HOME -name "*.ovpn"))
+notify-send -a "st" "Searching for .ovpn files in $HOME"
+VPN_FILES=("tor" $(find $HOME/.ssh/ $HOME/Documents/ -name "*.ovpn"))
 FILE_PATH=$(echo ${VPN_FILES[*]} | tr ' ' '\n' | dmenu "$@")
 pid=$(ps aux | grep "dwmstat" | head -n1 | awk -F' ' '{print $2}')
 
