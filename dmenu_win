@@ -71,7 +71,7 @@ function start_with_iso() {
 }
 
 function vm_management() {
-	ret=$(echo -e "Screendump\nPlugin USB" | dmenu "$@")
+	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
@@ -83,6 +83,8 @@ function vm_management() {
 		PRODUCTID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f2)
 
 		echo "device_add usb-host,vendorid=0x$VENDORID,productid=0x$PRODUCTID,id=controller" | socat - unix:$MANAGEMENT_SOCKET
+	elif echo $ret | grep "Reset" &> /dev/null; then
+		echo "system_reset" | socat - unix:$MANAGEMENT_SOCKET
 	fi
 }
 
