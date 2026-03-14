@@ -72,7 +72,7 @@ function start_with_iso() {
 
 function vm_management() {
 	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error" "No VM running" && return
-	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots" | dmenu "$@")
+	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
@@ -107,6 +107,8 @@ function vm_management() {
 			echo "off" > $STATE_FILE
 			notify-send -a win "Windows" "Network isolated"
 		fi
+	elif echo $ret | grep "Shutdown" &> /dev/null; then
+		echo "system_powerdown" | socat - unix-connect:$MANAGEMENT_SOCKET
 	fi
 }
 
