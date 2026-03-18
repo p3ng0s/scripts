@@ -9,18 +9,20 @@
 #  Backup script made to save my config to a tar ball for
 #  later unpacking
 
-BDIR=/tmp/backup
-CONF_FILES=(.vimrc .tmux.conf .fzf.bash .tigrc .gdbinit .wallpaper.png .Xresources)
-CONF_DIRS=(.vim/ .tmux/ .fzf/ .peda/ .xvwm/)
+BDIR=$(mktemp -d)
+CONF_FILES=(.tigrc .newsboat/urls .config/qutebrowser/quickmarks .todo)
+CONF_DIRS=(.xvwm/)
 
 HOST=$(cat $HOME/.p3ng0s.json | jq -r .host)
 UNAME=$(cat $HOME/.p3ng0s.json | jq -r .user)
 
 function move_to_folder() {
 	for item in $@; do
-		IN_FILE=$HOME/$item
-		TO_FILE=$BDIR/$item
+		IN_FILE="$HOME/$item"
+		TO_FILE="$BDIR/$item"
+		DIR="$(dirname "$item")"
 
+		[[ "$DIR" != "." ]] && mkdir -p $BDIR/$DIR
 		echo -ne "Copying \e[1;31m$IN_FILE\e[m to: \e[1;34m$TO_FILE\e[m -> "
 		cp -r $IN_FILE $TO_FILE &> /dev/null
 		check_if_moved $IN_FILE $TO_FILE
@@ -74,20 +76,17 @@ fi
 move_to_folder ${CONF_FILES[*]}
 move_to_folder ${CONF_DIRS[*]}
 
-echo -n "Moving $BDIR to ./backup -> "
-cp -r $BDIR/ ./backup &> /dev/null && echo -e "\e[1;34m:)\e[m" ||
-	echo -e "\e[1;31m:(\e[m"
-
 echo -n "Creating tar ball -> "
-tar -cf backup.tar.xz backup &>/dev/null && echo -e "\e[1;34m:)\e[m" ||
+CURRENT_PWD=$PWD
+cd $BDIR/
+tar -cf $CURRENT_PWD/backup.tar.xz $(find . -type f) &>/dev/null && echo -e "\e[1;34m:)\e[m" ||
 	echo -e "\e[1;31m:(\e[m"
+cd $CURRENT_PWD
 
 let size=$(du ./backup.tar.xz | cut -f1 -d'	')
 echo -n "checking size -> "
 (($size < 500000)) && echo -e "\e[1;34m:)\e[m" ||
 	echo -e "\e[1;31m:(\nError:\e[m Please consider having a smaller backup file"
-
-rm -rf ./backup/
 
 scp ./backup.tar.xz $UNAME@$HOST:/var/www/html/rice/backup.tar.xz
 
