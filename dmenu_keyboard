@@ -30,7 +30,7 @@ function ctrl() {
 
 function_meta=("bye_bye_defender" "stabilise_rev_shell" "stabilise_rev_shell3" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
-	"at_exec_ma_boy" "file_splitter" "add_ssh_keyz" "powershell_notes")
+	"at_exec_ma_boy" "file_splitter" "add_ssh_keyz" "powershell_notes" "repeat_text")
 
 # function that are needed
 function stabilise_rev_shell() {
@@ -175,6 +175,15 @@ function powershell_notes() {
 	res=$(echo "$md_result" | dmenu $DMENU_ARGS)
 	sleep 2
 	key "$res"
+}
+
+function repeat_text() {
+	data=$(zenity --text-info --editable --title "Paste in what you need repeated")
+
+	sleep 5
+	while IFS= read -r line; do
+		command "$line"
+	done <<< "$data"
 }
 
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
