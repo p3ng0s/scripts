@@ -13,7 +13,7 @@
 notify-send -a "system" "Searching for .ovpn files in $HOME"
 [ -f /etc/openvpn/client/dmenu-ovpn.conf ] && RESTART="restart" || RESTART=""
 [ -f /etc/openvpn/client/dmenu-ovpn.conf ] && DISCONNECT="disconnect" || DISCONNECT=""
-VPN_FILES=($DISCONNECT $RESTART "tor" $(find $HOME/.ssh/ $HOME/Documents/ -name "*.ovpn") $(find /etc/openvpn/client/ -name "*.conf"))
+VPN_FILES=($DISCONNECT $RESTART "tor" $(find $HOME/.ssh/ $HOME/Documents/ $HOME/loot/ -name "*.ovpn") $(find /etc/openvpn/client/ -name "*.conf"))
 FILE_PATH=$(echo ${VPN_FILES[*]} | tr ' ' '\n' | dmenu "$@")
 pid=$(ps aux | grep "dwmstat" | head -n1 | awk -F' ' '{print $2}')
 
