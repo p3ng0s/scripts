@@ -10,11 +10,26 @@
 # Description:
 #  Script to run openvpn
 
-notify-send -a "st" "Searching for .ovpn files in $HOME"
-VPN_FILES=("tor" $(find $HOME/.ssh/ $HOME/Documents/ -name "*.ovpn"))
+notify-send -a "system" "Searching for .ovpn files in $HOME"
+[ -f /etc/openvpn/client/dmenu-ovpn.conf ] && RESTART="restart" || RESTART=""
+[ -f /etc/openvpn/client/dmenu-ovpn.conf ] && DISCONNECT="disconnect" || DISCONNECT=""
+VPN_FILES=($DISCONNECT $RESTART "tor" $(find $HOME/.ssh/ $HOME/Documents/ -name "*.ovpn") $(find /etc/openvpn/client/ -name "*.conf"))
 FILE_PATH=$(echo ${VPN_FILES[*]} | tr ' ' '\n' | dmenu "$@")
 pid=$(ps aux | grep "dwmstat" | head -n1 | awk -F' ' '{print $2}')
 
-pkexec bash -c "openvpn $FILE_PATH &"
-sleep 10
+if [ "$FILE_PATH" = "tor" ]; then
+	pkexec bash -c "systemctl start tor"
+	notify-send -a "system" $'You can connect to tor through 127.0.0.1:9050 with:\nproxychains <command>'
+elif [ "$FILE_PATH" = "restart" ]; then
+	pkexec bash -c "systemctl restart openvpn-client@dmenu-ovpn.service"
+	notify-send -a "system" $'You can view the status of the vpn with:\nsystemctl status openvpn-client@dmenu-ovpn.service'
+elif [ "$FILE_PATH" = "disconnect" ]; then
+	pkexec bash -c "systemctl stop openvpn-client@dmenu-ovpn.service"
+	notify-send -a "system" $'Vpn disconnected'
+elif [ "$FILE_PATH" != "" ]; then
+	pkexec bash -c "cp -r $FILE_PATH /etc/openvpn/client/dmenu-ovpn.conf && systemctl start openvpn-client@dmenu-ovpn.service"
+	notify-send -a "system" $'You can view the status of the vpn with:\nsystemctl status openvpn-client@dmenu-ovpn.service'
+fi
+
+sleep 5
 kill -s SIGUSR1 $pid

