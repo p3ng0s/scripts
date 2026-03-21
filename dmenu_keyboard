@@ -132,7 +132,7 @@ function file_splitter() {
 		--separator="|")
 	files=
 	if [ -z "$form_output" ]; then
-		zenity --info --title="Information" --text="No input provided. Exiting."
+		notify-send -a "system" "No input provided. Exiting."
 		exit 1
 	fi
 	number_of_splits=$(echo "$form_output" | cut -d"|" -f1)
@@ -145,7 +145,7 @@ function file_splitter() {
 
 	cd $working_dir
 	if [ $type_of_option = "drag" ]; then
-		zenity --info --title="Success" --text="You entered: $number_of_splits amount of splits please drag the file in the window that will open after this dialog"
+		notify-send -a "system" "You entered: $number_of_splits amount of splits please drag the file in the window that will open after this dialog"
 		files=$(/etc/p3ng0s/ripdrag -p -k -t)
 		echo $files | xargs -I {} cp -r "{}" .
 	else
