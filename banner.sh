@@ -13,7 +13,7 @@ NO=$(( $RANDOM % 7 + 1 ))
 
 case $NO in
 	1)
-		bullshit | cowsay -f /usr/share/cows/$(/bin/ls /usr/share/cows/ | shuf -n 1) | lolcat
+		bullshit | cowsay -f /usr/share/cowsay/cows/$(/bin/ls /usr/share/cowsay/cows/ | shuf -n 1) | lolcat
 		;;
 	2)
 		sh ghosts.sh
@@ -28,7 +28,7 @@ case $NO in
 		doge
 		;;
 	6)
-		fortune | cowsay -f /usr/share/cows/$(/bin/ls /usr/share/cows/ | shuf -n 1) | lolcat
+		fortune | cowsay -f /usr/share/cowsay/cows/$(/bin/ls /usr/share/cowsay/cows/ | shuf -n 1) | lolcat
 		;;
 	7)
 		date "+%D %T" | figlet | lolcat
