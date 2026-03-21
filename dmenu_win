@@ -105,11 +105,11 @@ function vm_management() {
 		if [ -f $STATE_FILE ] && grep -q "off" $STATE_FILE; then
 			echo "set_link virtio-net-pci.0 on" | socat - unix:$MANAGEMENT_SOCKET
 			echo "on" > $STATE_FILE
-			notify-send -a win "Windows" "Network restored"
+			notify-send -a win "Windows: Network restored"
 		else
 			echo "set_link virtio-net-pci.0 off" | socat - unix:$MANAGEMENT_SOCKET
 			echo "off" > $STATE_FILE
-			notify-send -a win "Windows" "Network isolated"
+			notify-send -a win "Windows: Network isolated"
 		fi
 	elif echo $ret | grep "Shutdown" &> /dev/null; then
 		echo "system_powerdown" | socat - unix-connect:$MANAGEMENT_SOCKET
@@ -159,7 +159,7 @@ elif echo $ret | grep "USB Boot" &> /dev/null; then
 		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
-		-drive file=$ret,format=raw,if=virtio,cache=none,aio=native \
+		-drive file=$ret,format=raw,if=virtio,cache=none,aio=threads \
 		-m $(cat $CONFIG_FILE | jq -r .ram) \
 		-smp $(cat $CONFIG_FILE | jq -r .cores) \
 		-vga virtio \
@@ -167,6 +167,10 @@ elif echo $ret | grep "USB Boot" &> /dev/null; then
 		-usb \
 		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
 		-device usb-tablet
+	# This is for Windows 11 activate it on reboot so that it doesn't connect to the internet!
+#		-netdev user,id=net0,restrict=on \
+#		-device virtio-net-pci,netdev=net0
+
 elif echo $ret | grep "Install" &> /dev/null; then
 	iso_path=$(zenity --file-selection --title="Select ISO" --file-filter="ISO files | *.iso")
 	ret=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | awk '$3 == "disk" {print "/dev/"$1}' | dmenu "$@")
@@ -183,10 +187,12 @@ elif echo $ret | grep "Install" &> /dev/null; then
 		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
-		-drive file=$ret,format=raw,if=virtio,cache=none,aio=native \
-		-drive file="$iso_path",format=raw,media=cdrom,readonly=on \
-		-drive id=cdrom2,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
-		-device ide-cd,drive=cdrom2,bus=ide.1 \
+		-drive id=ssd_target,file=$ret,format=raw,if=none,cache=writeback,aio=threads \
+		-device virtio-blk-pci,drive=ssd_target \
+		-drive id=cdrom0,file="$iso_path",media=cdrom,readonly=on,if=none \
+		-device ide-cd,drive=cdrom0,bus=ide.0 \
+		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
+		-device ide-cd,drive=cdrom1,bus=ide.1 \
 		-m $(cat $CONFIG_FILE | jq -r .ram) \
 		-smp $(cat $CONFIG_FILE | jq -r .cores) \
 		-vga virtio \
@@ -212,9 +218,9 @@ elif echo $ret | grep "Capture" &> /dev/null; then
 		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
-		-drive id=usb0,file=$ret,format=raw,if=none,cache=none,aio=native \
-		-device usb-storage,drive=usb0 \
-		-drive id=disk0,file=$capture_vm_file,format=qcow2,if=none,cache=none,aio=io_uring \
+		-drive id=usb_source,file=$ret,format=raw,if=none,cache=none,aio=threads \
+		-device usb-storage,drive=usb_source \
+		-drive id=disk0,file="$capture_vm_file",format=qcow2,if=none,cache=none,aio=io_uring \
 		-device virtio-blk-pci,drive=disk0 \
 		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
 		-device ide-cd,drive=cdrom1,bus=ide.1 \
