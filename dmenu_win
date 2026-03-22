@@ -134,7 +134,10 @@ function vm_management() {
 
 cp /usr/share/edk2/x64/OVMF_VARS.4m.fd /tmp/OVMF_VARS.4m.fd
 
-ret=$(echo -e " Boot Windows\n USB Boot\nﰇ Reset & Recovery\n Install to drive (iso->usb)\n Capture to VM (usb->qcow2)\n Settings\n Manage VM" | dmenu "$@")
+xp_option=""
+[ -f $HOME/.qemu/rebornXP.qcow2 ] || [ -f $HOME/loot/qemu/rebornXP.qcow2 ] && xp_option="\n Windows XP"
+
+ret=$(echo -e " Boot Windows$xp_option\n USB Boot\nﰇ Reset & Recovery\n Install to drive (iso->usb)\n Capture to VM (usb->qcow2)\n Settings\n Manage VM" | dmenu "$@")
 
 if echo $ret | grep "Boot Windows" &> /dev/null; then
 	PCORES=$(for cpu in /sys/devices/system/cpu/cpu[0-9]*/topology/core_cpus_list; do
@@ -158,6 +161,22 @@ if echo $ret | grep "Boot Windows" &> /dev/null; then
 		-vga none -device virtio-vga-gl -display sdl,gl=on \
 		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
 		-netdev user,id=net0,smb=/opt/windows/ -device virtio-net-pci,netdev=net0
+elif echo $ret | grep "XP" &> /dev/null; then
+	if [ -f $HOME/.qemu/rebornXP.qcow2 ]; then
+		XP=$HOME/.qemu/rebornXP.qcow2
+	else
+		XP=$HOME/loot/qemu/rebornXP.qcow2
+	fi
+	qemu-system-i386 -enable-kvm \
+		-machine pc,accel=kvm \
+		-boot order=dc,menu=on \
+		-drive file=$XP,format=qcow2,if=ide \
+		-m 512M \
+		-smp 2 \
+		-vga std \
+		-display sdl,gl=off \
+		-monitor unix:$MANAGEMENT_SOCKET,server,nowait \
+		-netdev user,id=net0,smb=/opt/windows/ -device ne2k_pci,netdev=net0
 elif echo $ret | grep "Reset" &> /dev/null; then
 	start_with_iso
 elif echo $ret | grep "USB Boot" &> /dev/null; then
