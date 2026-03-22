@@ -21,7 +21,7 @@ MANAGEMENT_SOCKET=/tmp/qemu-manage.sock
 
 if [ ! -f $CONFIG_FILE ]; then
 	[ -d /home/p4p1-live ] && mkdir $HOME/loot/qemu || mkdir -p $HOME/.qemu
-	echo "{\"ram\":\"8G\",\"cores\":5,\"vm_file\":\"$HOME/.qemu/Windows.img\",\"vm_size\":\"100G\",\"virtio\":\"$HOME/.qemu/virtio-win.iso\",\"iso\":\"$HOME/.qemu/windows.iso\"}" > $CONFIG_FILE
+	echo "{\"ram\":\"8G\",\"cores\":5,\"vm_file\":\"$HOME/.qemu/Windows.img\",\"vm_size\":\"100G\",\"virtio\":\"$HOME/.qemu/virtio-win.iso\",\"iso\":\"$HOME/.qemu/windows.iso\",\"scripts\":\"$HOME/.qemu/scripts/\"}" > $CONFIG_FILE
 	qemu-img create -f qcow2 $(cat $CONFIG_FILE | jq -r .vm_file) $(cat $CONFIG_FILE | jq -r .vm_size)
 fi
 
@@ -76,11 +76,27 @@ function start_with_iso() {
 
 function vm_management() {
 	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error" "No VM running" && return
-	ret=$(echo -e "Screendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
+	ret=$(echo -e "Scripts\nScreendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
 		echo "screendump $HOME/Pictures/screenshots/qemu.png" | socat - unix:$MANAGEMENT_SOCKET
+	elif echo $ret | grep "Scripts" &> /dev/null; then
+		script_files=$(find $(cat $CONFIG_FILE | jq -r .scripts) -name "*.script")
+		ret=$(echo "$script_files" | dmenu "$@")
+
+		if [ -f $ret ]; then
+			cat $ret | while read line; do
+				cmd=$(echo "$line" | cut -d' ' -f1)
+				arg=$(echo "$line" | cut -d' ' -f2-)
+
+				case $cmd in
+					wait) sleep "$arg" ;;
+					*) echo "$line" | socat - unix-connect:/tmp/qemu-manage.sock;;
+				esac
+				sleep 0.4
+			done
+		fi
 	elif echo $ret | grep "USB" &> /dev/null; then
 		ret=$(lsusb | awk '{print $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16}' | dmenu "$@")
 		VENDORID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f1)
