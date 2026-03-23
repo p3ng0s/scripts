@@ -92,7 +92,7 @@ function vm_management() {
 
 				case $cmd in
 					wait) sleep "$arg" ;;
-					*) echo "$line" | socat - unix-connect:/tmp/qemu-manage.sock;;
+					*) echo "$line" | socat - unix-connect:/tmp/$MANAGEMENT_SOCKET;;
 				esac
 				sleep 0.4
 			done
