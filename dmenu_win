@@ -74,13 +74,63 @@ function start_with_iso() {
 		-netdev user,id=net0,smb=/opt/windows/ -device virtio-net-pci,netdev=net0
 }
 
+function string_parser() {
+	echo $"$@" | grep -o . | while IFS= read -r char; do
+		case $"$char" in
+			[a-z]) echo "sendkey $char" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			[A-Z]) echo "sendkey shift-$(echo $char | tr '[:upper:]' '[:lower:]')" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			[0-9]) echo "sendkey $char" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			' ') echo "sendkey spc" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			"\\") echo "sendkey backslash" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'/') echo "sendkey slash" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'.') echo "sendkey dot" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'!') echo "sendkey shift-1" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'@') echo "sendkey shift-2" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'#') echo "sendkey shift-3" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'$') echo "sendkey shift-4" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'%') echo "sendkey shift-5" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'^') echo "sendkey shift-6" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'&') echo "sendkey shift-7" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'*') echo "sendkey shift-8" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'(') echo "sendkey shift-9" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			')') echo "sendkey shift-0" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'+') echo "sendkey shift-equal" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'=') echo "sendkey equal" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'[') echo "sendkey bracketleft" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			']') echo "sendkey bracketright" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'{') echo "sendkey shift-bracketleft" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'}') echo "sendkey shift-bracketright" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'"') echo "sendkey shift-apostrophe" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			"'") echo "sendkey apostrophe" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'<') echo "sendkey shift-comma" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'>') echo "sendkey shift-dot" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'?') echo "sendkey shift-slash" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'|') echo "sendkey shift-backslash" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			',') echo "sendkey comma" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'`') echo "sendkey grave" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'~') echo "sendkey shift-grave" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'-') echo "sendkey minus" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			'_') echo "sendkey shift-minus" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			';') echo "sendkey semicolon" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+			':') echo "sendkey shift-semicolon" | socat - unix-connect:$MANAGEMENT_SOCKET;;
+		esac
+		sleep 0.4
+	done
+}
+
 function vm_management() {
-	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error" "No VM running" && return
-	ret=$(echo -e "Scripts\nScreendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
+	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error " "No VM running" && return
+	ret=$(echo -e "Paster\nScripts\nScreendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
 		echo "screendump $HOME/Pictures/screenshots/qemu.png" | socat - unix:$MANAGEMENT_SOCKET
+	elif echo $ret | grep "Paster" &> /dev/null; then
+		data=$(zenity --text-info --editable --title "Paste in what you need repeated")
+		sleep 5
+		while IFS= read -r line; do
+			string_parser $"$line"
+		done <<< "$data"
 	elif echo $ret | grep "Scripts" &> /dev/null; then
 		script_files=$(find $(cat $CONFIG_FILE | jq -r .scripts) -name "*.script")
 		ret=$(echo "$script_files" | dmenu "$@")
@@ -88,11 +138,12 @@ function vm_management() {
 		if [ -f $ret ]; then
 			cat $ret | while read line; do
 				cmd=$(echo "$line" | cut -d' ' -f1)
-				arg=$(echo "$line" | cut -d' ' -f2-)
+				arg=$(echo $"$line" | cut -d' ' -f2-)
 
 				case $cmd in
 					wait) sleep "$arg" ;;
-					*) echo "$line" | socat - unix-connect:/tmp/$MANAGEMENT_SOCKET;;
+					string) string_parser $"$arg" ;;
+					*) echo "$line" | socat - unix-connect:$MANAGEMENT_SOCKET;;
 				esac
 				sleep 0.4
 			done
@@ -135,7 +186,7 @@ function vm_management() {
 cp /usr/share/edk2/x64/OVMF_VARS.4m.fd /tmp/OVMF_VARS.4m.fd
 
 xp_option=""
-[ -f $HOME/.qemu/rebornXP.qcow2 ] || [ -f $HOME/loot/qemu/rebornXP.qcow2 ] && xp_option="\n Windows XP"
+{ [ -f $HOME/.qemu/rebornXP.qcow2 ] || [ -f $HOME/loot/qemu/rebornXP.qcow2 ]; } && xp_option="\n Windows XP"
 
 ret=$(echo -e " Boot Windows$xp_option\n USB Boot\nﰇ Reset & Recovery\n Install to drive (iso->usb)\n Capture to VM (usb->qcow2)\n Settings\n Manage VM" | dmenu "$@")
 
@@ -258,8 +309,9 @@ elif echo $ret | grep "Capture" &> /dev/null; then
 		-cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time \
 		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd \
 		-drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd \
-		-drive id=usb_source,file=$ret,format=raw,if=none,cache=none,aio=threads \
-		-device usb-storage,drive=usb_source \
+		-device nec-usb-xhci,id=xhci \
+		-drive id=usb_source,file=$ret,format=raw,if=none,cache=writeback,aio=threads \
+		-device usb-storage,drive=usb_source,bus=xhci.0 \
 		-drive id=disk0,file="$capture_vm_file",format=qcow2,if=none,cache=none,aio=io_uring \
 		-device virtio-blk-pci,drive=disk0 \
 		-drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none \
@@ -279,7 +331,6 @@ elif echo $ret | grep "Capture" &> /dev/null; then
 		"Windows Environement" \
 		"Click on this notification to copy the command that will run the VM!")
 
-	echo $action
 	if [ "$action" = "default" ]; then
 		echo "swtpm socket --tpmstate dir=/tmp/swtpm --ctrl type=unixio,path=/tmp/swtpm.sock --tpm2 --daemon && qemu-system-x86_64 -enable-kvm -boot menu=on -machine q35,accel=kvm -chardev socket,id=chrtpm,path=/tmp/swtpm.sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 -cpu host,hv_relaxed,hv_spinlocks=0x1fff,hv_vapic,hv_time -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd -drive if=pflash,format=raw,file=/tmp/OVMF_VARS.4m.fd -drive id=disk0,file="$capture_vm_file",format=qcow2,if=none,cache=none,aio=io_uring -device virtio-blk-pci,drive=disk0 -drive id=cdrom1,file=$(cat $CONFIG_FILE | jq -r .virtio),media=cdrom,readonly=on,if=none -device ide-cd,drive=cdrom1,bus=ide.1 -m $(cat $CONFIG_FILE | jq -r .ram) -smp $(cat $CONFIG_FILE | jq -r .cores) -vga std -display sdl,gl=on -usb -monitor unix:$MANAGEMENT_SOCKET,server,nowait -device usb-tablet" | xclip -selection clipboard
 	fi
