@@ -10,8 +10,6 @@
 # Description:
 #  Script to setup tty shell information without typo
 
-DMENU_ARGS="$@"
-
 # functions for a nicer syntax
 function command() {
 	xte "str $1"
@@ -172,7 +170,7 @@ function powershell_notes() {
 	md_result=$(find "$checklist_path" -name "*.md" \
 	| xargs -I {} awk 'tolower($0) ~ /^```powershell/{found=1; next} /^```/{found=0} found' '{}' \
 	| sort -u)
-	res=$(echo "$md_result" | dmenu $DMENU_ARGS)
+	res=$(echo "$md_result" | dmenu "$@")
 	sleep 2
 	key "$res"
 }
@@ -191,5 +189,5 @@ ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 if [ ! -z $ret ]; then
 	notify-send -a "system" $'You have 5 seconds to wait before the autotype starts...'
 	sleep 5
-	$ret
+	$ret "$@"
 fi
