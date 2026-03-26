@@ -116,6 +116,7 @@ function string_parser() {
 		esac
 		sleep 0.4
 	done
+	echo "sendkey ret" | socat - unix-connect:$MANAGEMENT_SOCKET
 }
 
 function vm_management() {
