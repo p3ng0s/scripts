@@ -127,7 +127,7 @@ function file_splitter() {
 		--separator="|")
 	files=
 	if [ -z "$form_output" ]; then
-		notify-send -a "system" "No input provided. Exiting."
+		notify-send -i /etc/p3ng0s/icons/p3ng0s.png  -a "system" "No input provided. Exiting."
 		exit 1
 	fi
 	number_of_splits=$(echo "$form_output" | cut -d"|" -f1)
@@ -140,7 +140,7 @@ function file_splitter() {
 
 	cd $working_dir
 	if [ $type_of_option = "drag" ]; then
-		notify-send -a "system" "You entered: $number_of_splits amount of splits please drag the file in the window that will open after this dialog"
+		notify-send  -i /etc/p3ng0s/icons/p3ng0s.png -a "system" "You entered: $number_of_splits amount of splits please drag the file in the window that will open after this dialog"
 		files=$(/etc/p3ng0s/ripdrag -p -k -t)
 		echo $files | xargs -I {} cp -r "{}" .
 	else
@@ -166,7 +166,7 @@ function powershell_notes() {
 	local checklist_path=$HOME/Documents/notes/Checklists/Tactic\ Techniques\ Procedures/
 
 	[[ "$(cat /etc/hostname)" = "p3ng0s-live" || -d /home/p4p1-live/ ]] && checklist_path=$HOME/loot/notes/Checklists/Tactic\ Techniques\ Procedures/
-	[[ -d "$checklist_path" ]] || { notify-send -a "system" $'Did not find checklist data!'; return 1; }
+	[[ -d "$checklist_path" ]] || { notify-send -i /etc/p3ng0s/icons/p3ng0s.png  -a "system" $'Did not find checklist data!'; return 1; }
 	md_result=$(find "$checklist_path" -name "*.md" \
 	| xargs -I {} awk 'tolower($0) ~ /^```powershell/{found=1; next} /^```/{found=0} found' '{}' \
 	| sort -u)
@@ -187,7 +187,7 @@ function repeat_text() {
 ret=$(echo ${function_meta[*]} | tr ' ' '\n' | dmenu "$@")
 
 if [ ! -z $ret ]; then
-	notify-send -a "system" $'You have 5 seconds to wait before the autotype starts...'
+	notify-send -i /etc/p3ng0s/icons/p3ng0s.png -a "system" $'You have 5 seconds to wait before the autotype starts...'
 	sleep 5
 	$ret "$@"
 fi

@@ -182,7 +182,7 @@ echo -n "Waiting for X session to start       "
 let i=5
 while [ $i -gt 0 ]; do
 	echo -ne "\b\b\b\b\b\b(${i}sec)"
-	notify-send "starting in: ${i}sec" -u critical -t 1000
+	notify-send -i /etc/p3ng0s/icons/p3ng0s.png "starting in: ${i}sec" -u critical -t 1000
 	sleep 1
 	let i=$i-1
 done

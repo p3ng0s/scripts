@@ -120,7 +120,7 @@ function string_parser() {
 }
 
 function vm_management() {
-	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -u critical "Error " "No VM running" && return
+	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -i /etc/p3ng0s/icons/p3ng0s.png -u critical "Error " "No VM running" && return
 	ret=$(echo -e "Paster\nScripts\nScreendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
@@ -173,11 +173,11 @@ function vm_management() {
 		if [ -f $STATE_FILE ] && grep -q "off" $STATE_FILE; then
 			echo "set_link virtio-net-pci.0 on" | socat - unix:$MANAGEMENT_SOCKET
 			echo "on" > $STATE_FILE
-			notify-send -a win "Windows: Network restored"
+			notify-send -i /etc/p3ng0s/icons/p3ng0s.png -a win "Windows: Network restored"
 		else
 			echo "set_link virtio-net-pci.0 off" | socat - unix:$MANAGEMENT_SOCKET
 			echo "off" > $STATE_FILE
-			notify-send -a win "Windows: Network isolated"
+			notify-send -i /etc/p3ng0s/icons/p3ng0s.png -a win "Windows: Network isolated"
 		fi
 	elif echo $ret | grep "Shutdown" &> /dev/null; then
 		echo "system_powerdown" | socat - unix-connect:$MANAGEMENT_SOCKET
