@@ -13,10 +13,27 @@
 #  sudo apt install zathura-ps zathura dmenu
 
 man_pages=$(man -k . | sort)
-ret=$(echo -e "$man_pages\n$(/usr/bin/ls /etc/p3ng0s/docs/)\np3ng0s-packages" | dmenu "$@" | cut -d' ' -f1)
+ret=$(echo -e "$man_pages\n$(/usr/bin/ls /etc/p3ng0s/docs/)\np3ng0s-packages\np3ng0s-running-services\np3ng0s-targets\np3ng0s-loot\np3ng0s-network" | dmenu "$@" | cut -d' ' -f1)
 if [ ! -z $ret ]; then
 	if echo $ret | grep "p3ng0s-packages" &> /dev/null; then
 		pacman -Q | enscript -o - | zathura -
+	elif echo $ret | grep "p3ng0s-loot" &> /dev/null; then
+		tree $HOME/loot | enscript -o - | zathura -
+	elif echo $ret | grep "p3ng0s-network" &> /dev/null; then
+		 (echo "=== Interfaces ===" && ip a && \
+			 echo "" && echo "=== Listening Services ===" && ss -tlnp && \
+			 echo "" && echo "=== ARP Cache ===" && arp -a && \
+			 echo "" && echo "=== Routes ===" && ip route) | enscript -o - | zathura -
+	elif echo $ret | grep "p3ng0s-targets" &> /dev/null; then
+		(tmux list-sessions -F '#{session_name}' | while read session; do
+			echo "=== $session ==="
+			for var in IP DNS USERNAME PASSWORD HASH KRB5CCNAME SCOPE URL; do
+				val=$(tmux show-env -t "$session" $var 2>/dev/null)
+				[[ "$val" == ${var}=* ]] && echo "$val"
+			done
+		done) | enscript -o - | zathura -
+	elif echo $ret | grep "p3ng0s-running-services" &> /dev/null; then
+		systemctl --type=service --state=running | enscript -o - | zathura -
 	elif echo $ret | grep "p3ng0s-" &> /dev/null; then
 		zathura /etc/p3ng0s/docs/$ret
 	else
