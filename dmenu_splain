@@ -12,9 +12,14 @@
 # Dependencies:
 #  sudo apt install zathura-ps zathura dmenu
 
-out=$(man -k . | sort | dmenu "$@" | cut -d' ' -f1)
-if [ ! -z $out ]; then
-	man -Tps $out | zathura -
+man_pages=$(man -k . | sort)
+ret=$(echo "$man_pages $(/usr/bin/ls /etc/p3ng0s/docs/)" | dmenu "$@" | cut -d' ' -f1)
+if [ ! -z $ret ]; then
+	if echo $ret | grep "p3ng0s-" &> /dev/null; then
+		zathura /etc/p3ng0s/docs/$ret
+	else
+		man -Tps $ret | zathura -
+	fi
 fi
 
 exit
