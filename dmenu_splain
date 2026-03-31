@@ -13,9 +13,11 @@
 #  sudo apt install zathura-ps zathura dmenu
 
 man_pages=$(man -k . | sort)
-ret=$(echo "$man_pages $(/usr/bin/ls /etc/p3ng0s/docs/)" | dmenu "$@" | cut -d' ' -f1)
+ret=$(echo -e "$man_pages\n$(/usr/bin/ls /etc/p3ng0s/docs/)\np3ng0s-packages" | dmenu "$@" | cut -d' ' -f1)
 if [ ! -z $ret ]; then
-	if echo $ret | grep "p3ng0s-" &> /dev/null; then
+	if echo $ret | grep "p3ng0s-packages" &> /dev/null; then
+		pacman -Q | enscript -o - | zathura -
+	elif echo $ret | grep "p3ng0s-" &> /dev/null; then
 		zathura /etc/p3ng0s/docs/$ret
 	else
 		man -Tps $ret | zathura -
