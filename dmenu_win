@@ -121,7 +121,7 @@ function string_parser() {
 
 function vm_management() {
 	[ ! -S $MANAGEMENT_SOCKET ] && notify-send -i /etc/p3ng0s/icons/p3ng0s.png -u critical "Error " "No VM running" && return
-	ret=$(echo -e "Paster\nScripts\nScreendump\nPlugin USB\nSystem Reset\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
+	ret=$(echo -e "Paster\nScripts\nScreendump\nPlugin USB\nReboot\nNetwork Toggle\nSnapshots\nShutdown" | dmenu "$@")
 
 	if echo $ret | grep "Screendump" &> /dev/null; then
 		[ ! -d $HOME/Pictures/screenshots/ ] && mkdir -p $HOME/Pictures/screenshots/
@@ -155,7 +155,7 @@ function vm_management() {
 		PRODUCTID=$(echo "$ret" | awk '{print $1}' | cut -d":" -f2)
 
 		echo "device_add usb-host,vendorid=0x$VENDORID,productid=0x$PRODUCTID,id=controller" | socat - unix:$MANAGEMENT_SOCKET
-	elif echo $ret | grep "Reset" &> /dev/null; then
+	elif echo $ret | grep "Reboot" &> /dev/null; then
 		echo "system_reset" | socat - unix:$MANAGEMENT_SOCKET
 	elif echo $ret | grep "Snapshots" &> /dev/null; then
 		snapshots=$(echo "info snapshots" | socat - unix:$MANAGEMENT_SOCKET | grep -E "^[0-9]+" | awk '{print $2}')
